@@ -1,0 +1,47 @@
+# Binarios compilados de Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Carpetas de dependencias
+/vendor/
+
+# Archivos de configuración con datos sensibles
+.env
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Archivos de compilación
+*.o
+*.a
+*.so
+
+# Logs
+*.log
+
+# Archivos temporales
+tmp/
+temp/
+
+# Base de datos local
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de sistema
+Thumbs.db
+.DS_Store
