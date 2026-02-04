@@ -18,30 +18,30 @@ func NewAuthService() *AuthService {
 }
 
 // Register registra un nuevo usuario
-func (s *AuthService) Register(req *models.RegisterRequest) (*models.Usuario, error) {
+func (s *AuthService) Register(req *models.RegisterRequest) (*models.Usuario, string,error) {
     // Validaciones
     if req.Nombre == "" || req.Email == "" || req.Password == "" {
-        return nil, errors.New("todos los campos son requeridos")
+        return nil,"" ,errors.New("todos los campos son requeridos")
     }
 
     if req.Rol != "instructor" && req.Rol != "alumno" {
-        return nil, errors.New("rol inválido, debe ser 'instructor' o 'alumno'")
+        return nil, "",errors.New("rol inválido, debe ser 'instructor' o 'alumno'")
     }
 
     if len(req.Password) < 6 {
-        return nil, errors.New("la contraseña debe tener al menos 6 caracteres")
+        return nil, "", errors.New("la contraseña debe tener al menos 6 caracteres")
     }
 
     // Verificar si el email ya existe
     existingUser, _ := s.usuarioRepo.FindByEmail(req.Email)
     if existingUser != nil {
-        return nil, errors.New("el email ya está registrado")
+        return nil, "",errors.New("el email ya está registrado")
     }
 
     // Hash de la contraseña
     hashedPassword, err := utils.HashPassword(req.Password)
     if err != nil {
-        return nil, errors.New("error al procesar la contraseña")
+        return nil,"", errors.New("error al procesar la contraseña")
     }
 
     // Crear usuario
@@ -54,10 +54,16 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.Usuario, er
 
     err = s.usuarioRepo.Create(usuario)
     if err != nil {
-        return nil, err
+        return nil, "",err
     }
 
-    return usuario, nil
+    // Generar token JWT
+    token, err := utils.GenerateJWT(usuario.ID, usuario.Email, usuario.Rol)
+    if err != nil {
+        return nil, "", errors.New("error al generar el token")
+    }
+
+    return usuario, token, nil
 }
 
 // Login autentica a un usuario

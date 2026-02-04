@@ -19,26 +19,31 @@ func NewAuthHandler() *AuthHandler {
     }
 }
 
-// Register maneja el registro de usuarios
+// Register maneja el registro de usuarios y devuelve token
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
     var req models.RegisterRequest
 
+    // Decodificar el body JSON
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
         respondError(w, http.StatusBadRequest, "Datos inválidos")
         return
     }
 
-    usuario, err := h.authService.Register(&req)
+    // Registrar usuario y generar token
+    usuario, token, err := h.authService.Register(&req)
     if err != nil {
         respondError(w, http.StatusBadRequest, err.Error())
         return
     }
 
+    // Responder JSON con usuario y token
     respondJSON(w, http.StatusCreated, map[string]interface{}{
         "message": "Usuario registrado exitosamente",
         "usuario": usuario,
+        "token":   token,
     })
 }
+
 
 // Login maneja el inicio de sesión
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
