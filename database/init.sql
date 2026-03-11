@@ -4,6 +4,9 @@
 -- ============================================
 
 -- Eliminar tablas si existen (para desarrollo)
+DROP TABLE IF EXISTS progreso_lecciones CASCADE;
+DROP TABLE IF EXISTS inscripciones CASCADE;
+DROP TABLE IF EXISTS lecciones CASCADE;
 DROP TABLE IF EXISTS cursos CASCADE;
 DROP TABLE IF EXISTS usuarios CASCADE;
 
@@ -35,33 +38,57 @@ CREATE TABLE cursos (
 );
 
 -- ============================================
+-- TABLA: lecciones
+-- ============================================
+CREATE TABLE lecciones (
+    id SERIAL PRIMARY KEY,
+    curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+    titulo VARCHAR(200) NOT NULL,
+    contenido TEXT,
+    imagen_url VARCHAR(500),
+    orden INTEGER NOT NULL DEFAULT 1,
+    duracion_minutos INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- TABLA: inscripciones
+-- ============================================
+CREATE TABLE inscripciones (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    curso_id INTEGER NOT NULL REFERENCES cursos(id) ON DELETE CASCADE,
+    fecha_inscripcion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    estado VARCHAR(20) NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo', 'completado', 'cancelado')),
+    progreso_porcentaje DECIMAL(5,2) DEFAULT 0.00,
+    UNIQUE(usuario_id, curso_id)
+);
+
+-- ============================================
+-- TABLA: progreso_lecciones
+-- ============================================
+CREATE TABLE progreso_lecciones (
+    id SERIAL PRIMARY KEY,
+    inscripcion_id INTEGER NOT NULL REFERENCES inscripciones(id) ON DELETE CASCADE,
+    leccion_id INTEGER NOT NULL REFERENCES lecciones(id) ON DELETE CASCADE,
+    completada BOOLEAN DEFAULT false,
+    fecha_completado TIMESTAMP,
+    UNIQUE(inscripcion_id, leccion_id)
+);
+
+-- ============================================
 -- ÍNDICES para mejorar rendimiento
 -- ============================================
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_usuarios_rol ON usuarios(rol);
 CREATE INDEX idx_cursos_instructor ON cursos(instructor_id);
 CREATE INDEX idx_cursos_activo ON cursos(activo);
-
--- ============================================
--- DATOS DE PRUEBA (opcional)
--- ============================================
-
--- Insertar usuarios de prueba
--- Nota: Las contraseñas deben ser hasheadas en la aplicación
--- Estos son solo ejemplos, usar el endpoint /api/auth/register en producción
-
-INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES
-('Juan Pérez', 'juan.instructor@example.com', '$2a$10$ejemplo_hash_contraseña', 'instructor'),
-('María García', 'maria.instructor@example.com', '$2a$10$ejemplo_hash_contraseña', 'instructor'),
-('Carlos López', 'carlos.alumno@example.com', '$2a$10$ejemplo_hash_contraseña', 'alumno'),
-('Ana Martínez', 'ana.alumno@example.com', '$2a$10$ejemplo_hash_contraseña', 'alumno');
-
--- Insertar cursos de prueba
-INSERT INTO cursos (nombre, descripcion, duracion_horas, instructor_id, activo) VALUES
-('Introducción a Go', 'Aprende los fundamentos del lenguaje de programación Go', 40, 1, true),
-('Desarrollo Web con React', 'Construcción de aplicaciones web modernas con React', 60, 1, true),
-('Bases de Datos PostgreSQL', 'Diseño y administración de bases de datos relacionales', 30, 2, true),
-('Arquitectura de Software', 'Patrones y mejores prácticas en arquitectura de software', 50, 2, false);
+CREATE INDEX idx_lecciones_curso ON lecciones(curso_id);
+CREATE INDEX idx_lecciones_orden ON lecciones(curso_id, orden);
+CREATE INDEX idx_inscripciones_usuario ON inscripciones(usuario_id);
+CREATE INDEX idx_inscripciones_curso ON inscripciones(curso_id);
+CREATE INDEX idx_progreso_inscripcion ON progreso_lecciones(inscripcion_id);
 
 -- ============================================
 -- FUNCIÓN para actualizar updated_at automáticamente
@@ -82,6 +109,11 @@ CREATE TRIGGER update_usuarios_updated_at
 
 CREATE TRIGGER update_cursos_updated_at
     BEFORE UPDATE ON cursos
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_lecciones_updated_at
+    BEFORE UPDATE ON lecciones
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
